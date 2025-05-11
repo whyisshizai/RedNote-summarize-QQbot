@@ -1,0 +1,17 @@
+[Summary]
+enable = true
+
+[Summary.Dify]
+enable = true
+api-key = "app-7Y3IBLr24bWPfqZdHXbZydST"  # 请替换为实际的 API Key
+base-url = "https://api.dify.ai/v1"  # 请替换为实际的 API URL
+http-proxy = ""  #代理
+
+[Summary.Settings]
+max_text_length = 1000 # 最大文本长度
+white_list = [
+    "https://www.xiaohongshu.com",
+    "http://xhslink.com",
+
+
+]
