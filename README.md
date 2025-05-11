@@ -2,7 +2,7 @@
 
 AstrBot 插件
 
-使用/summraize url可以对小红书的页面进行AI总结
+使用/summarize url可以对小红书的页面进行AI总结
 
 # 支持
 
