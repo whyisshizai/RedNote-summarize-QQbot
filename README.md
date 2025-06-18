@@ -1,4 +1,6 @@
 # 基于AstrBot的arvix论文，小红书等文章链接，github链接总结插件plugins
+# 目前支持视频总结
+
 可以直接下载下来放到plugins中
 
 打开config.toml写入你的dify上的api
