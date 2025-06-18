@@ -1,0 +1,847 @@
+app:
+  description: whyis制作的对话流
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: WhyisBOT
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.2.0@2c45c3bb4815ef0e7dfb1bc7a1dd7724912ba490134169066c8219531b598a51
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/tongyi:0.0.25@325423749d5e71f8b4681af1b2ed46d7686cb1947e443a86ba5d14ac45ff85a4
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types:
+      - video
+      - audio
+      - image
+      - document
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 2
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: true
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: true
+      language: zh-Hans
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: 1738917745853-source-1738918123165-target
+      selected: false
+      source: '1738917745853'
+      sourceHandle: source
+      target: '1738918123165'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: 1739252840296-source-1739252888579-target
+      selected: false
+      source: '1739252840296'
+      sourceHandle: source
+      target: '1739252888579'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: list-operator
+        targetType: tool
+      id: 1739254087701-source-1739252789163-target
+      selected: false
+      source: '1739254087701'
+      sourceHandle: source
+      target: '1739252789163'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: tool
+        targetType: answer
+      id: 1739257224364-source-1739288133732-target
+      selected: false
+      source: '1739257224364'
+      sourceHandle: source
+      target: '1739288133732'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: tool
+      id: 1745668432393-source-1739257224364-target
+      selected: false
+      source: '1745668432393'
+      sourceHandle: source
+      target: '1739257224364'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1739252789163-source-1745668432393-target
+      selected: false
+      source: '1739252789163'
+      sourceHandle: source
+      target: '1745668432393'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 17471217841620--1747121828885-target
+      source: '17471217841620'
+      sourceHandle: source
+      target: '1747121828885'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 17475838889610-source-17475839837860-target
+      source: '17475838889610'
+      sourceHandle: source
+      target: '17475839837860'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1739252680159-true-1738917745853-target
+      source: '1739252680159'
+      sourceHandle: 'true'
+      target: '1738917745853'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1739252680159-3a9541e0-b608-4bb5-a027-def256809e7a-1739252840296-target
+      source: '1739252680159'
+      sourceHandle: 3a9541e0-b608-4bb5-a027-def256809e7a
+      target: '1739252840296'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: list-operator
+      id: 1739252680159-458858e2-e643-442d-9bfd-2ef164189378-1739254087701-target
+      source: '1739252680159'
+      sourceHandle: 458858e2-e643-442d-9bfd-2ef164189378
+      target: '1739254087701'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1739252680159-c47afde9-f052-4d4d-9efe-f498b3f94a80-17475838889610-target
+      source: '1739252680159'
+      sourceHandle: c47afde9-f052-4d4d-9efe-f498b3f94a80
+      target: '17475838889610'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1739252680159-5e77a038-54bc-45a9-b99f-1606c8d13d6a-17471217841620-target
+      source: '1739252680159'
+      sourceHandle: 5e77a038-54bc-45a9-b99f-1606c8d13d6a
+      target: '17471217841620'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1738915019767-source-1739252680159-target
+      source: '1738915019767'
+      sourceHandle: source
+      target: '1739252680159'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 53
+      id: '1738915019767'
+      position:
+        x: 30
+        y: 406.5
+      positionAbsolute:
+        x: 30
+        y: 406.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}
+
+            '
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params: {}
+          mode: chat
+          name: gemini-2.0-flash-exp
+          provider: langgenius/gemini/google
+        prompt_template:
+        - edition_type: basic
+          id: 6de35274-53f5-4e34-89c5-a9c30ffb5f64
+          role: system
+          text: '
+
+            你是一个友好有用的助理，你的名字叫whyis实在。你会用简洁、专业的方式回答问题。
+
+            -用户提问使用的什么语言就使用什么语言，代码文章等语言不是主要语言，如果用户使用中文提问则使用中文。
+
+            - 对于代码相关问题，请提供清晰的示例和解释
+
+            -请你不要在返回的文章中展示你的思考链，请你直接回复'
+        selected: false
+        structured_output_enabled: true
+        title: 纯文本LLM
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: low
+            variable_selector:
+            - sys
+            - files
+          enabled: false
+      height: 89
+      id: '1738917745853'
+      position:
+        x: 638
+        y: 406.5
+      positionAbsolute:
+        x: 638
+        y: 406.5
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1738917745853.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 104
+      id: '1738918123165'
+      position:
+        x: 942
+        y: 406.5
+      positionAbsolute:
+        x: 942
+        y: 406.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: empty
+            id: a6c51713-13ff-4c59-92ad-df1af61aa759
+            value: ''
+            varType: array[file]
+            variable_selector:
+            - sys
+            - files
+          id: 'true'
+          logical_operator: or
+        - case_id: 3a9541e0-b608-4bb5-a027-def256809e7a
+          conditions:
+          - comparison_operator: contains
+            id: dda26e42-905b-4503-9e7e-aefe52b20e7e
+            sub_variable_condition:
+              case_id: a3472907-6671-4ff6-a40f-420943e154f3
+              conditions:
+              - comparison_operator: in
+                id: f2c55058-eabf-4fde-a2da-e6c07e64246c
+                key: type
+                value:
+                - image
+                varType: string
+              logical_operator: and
+            value: ''
+            varType: array[file]
+            variable_selector:
+            - sys
+            - files
+          id: 3a9541e0-b608-4bb5-a027-def256809e7a
+          logical_operator: and
+        - case_id: 458858e2-e643-442d-9bfd-2ef164189378
+          conditions:
+          - comparison_operator: contains
+            id: d5b09e7e-a8ea-4018-8650-947d6d9b0ca1
+            sub_variable_condition:
+              case_id: 1e38440a-5660-41d5-9be3-7cfafa0a8b6a
+              conditions:
+              - comparison_operator: in
+                id: 864efcf6-b80a-4c3b-8842-b3c7c66074cb
+                key: type
+                value:
+                - audio
+                varType: string
+              logical_operator: and
+            value: ''
+            varType: array[file]
+            variable_selector:
+            - sys
+            - files
+          id: 458858e2-e643-442d-9bfd-2ef164189378
+          logical_operator: and
+        - case_id: c47afde9-f052-4d4d-9efe-f498b3f94a80
+          conditions:
+          - comparison_operator: contains
+            id: 1a5eab00-9ed2-488c-8eb3-99d902c33ac3
+            sub_variable_condition:
+              case_id: b4eb1a99-7840-4d62-bffe-e40a073db948
+              conditions:
+              - comparison_operator: in
+                id: 280c0d9a-7e77-4c69-902c-36e9ccc466be
+                key: type
+                value:
+                - document
+                varType: string
+              logical_operator: and
+            value: ''
+            varType: array[file]
+            variable_selector:
+            - sys
+            - files
+          id: c47afde9-f052-4d4d-9efe-f498b3f94a80
+          logical_operator: and
+        - case_id: 5e77a038-54bc-45a9-b99f-1606c8d13d6a
+          conditions:
+          - comparison_operator: contains
+            id: 33cb4ff7-f570-46b8-a358-2dc44e735754
+            sub_variable_condition:
+              case_id: 84bf66f6-5445-46ce-b036-90207abb4a98
+              conditions:
+              - comparison_operator: in
+                id: dc9f8cb7-668b-4545-b924-f58e6bbd4436
+                key: type
+                value:
+                - video
+                varType: string
+              logical_operator: and
+            value: ''
+            varType: array[file]
+            variable_selector:
+            - sys
+            - files
+          id: 5e77a038-54bc-45a9-b99f-1606c8d13d6a
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 413
+      id: '1739252680159'
+      position:
+        x: 334
+        y: 406.5
+      positionAbsolute:
+        x: 334
+        y: 406.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        provider_id: audio
+        provider_name: audio
+        provider_type: builtin
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        title: Speech To Text
+        tool_configurations:
+          model: langgenius/openai/openai#whisper-1
+        tool_label: Speech To Text
+        tool_name: asr
+        tool_parameters:
+          audio_file:
+            type: variable
+            value:
+            - sys
+            - files
+        type: tool
+      height: 119
+      id: '1739252789163'
+      position:
+        x: 942
+        y: 550.5
+      positionAbsolute:
+        x: 942
+        y: 550.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params: {}
+          mode: chat
+          name: gemini-2.0-flash-exp
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 230c6990-e5b0-41d7-9dc8-70782d28bd8d
+          role: system
+          text: 你是一个乐于助人的助手。请将图片里的内容完整无缺的复述出来。
+        selected: false
+        title: 支持图片输入的LLM
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - sys
+            - files
+          enabled: true
+      height: 89
+      id: '1739252840296'
+      position:
+        x: 638
+        y: 709.5
+      positionAbsolute:
+        x: 638
+        y: 709.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1739252840296.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 3
+        type: answer
+        variables: []
+      height: 104
+      id: '1739252888579'
+      position:
+        x: 942
+        y: 709.5
+      positionAbsolute:
+        x: 942
+        y: 709.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        extract_by:
+          enabled: true
+          serial: '1'
+        filter_by:
+          conditions:
+          - comparison_operator: contains
+            key: ''
+            value: ''
+          enabled: false
+        item_var_type: string
+        limit:
+          enabled: false
+          size: 1
+        order_by:
+          enabled: false
+          key: ''
+          value: asc
+        selected: false
+        title: 列表操作
+        type: list-operator
+        var_type: array[string]
+        variable:
+        - '1747711969973'
+        - text
+      height: 91
+      id: '1739254087701'
+      position:
+        x: 638
+        y: 557
+      positionAbsolute:
+        x: 638
+        y: 557
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            max_tokens: 4096
+          mode: chat
+          name: deepseek-r1
+          provider: langgenius/tongyi/tongyi
+        prompt_template:
+        - id: 96c0f0bc-716d-4b69-96bf-59006d5d9ef4
+          role: system
+          text: '你是一个友好有用的助理，你的名字叫whyis。你会用简洁、专业的方式回答问题。
+
+            -使用中文。
+
+            - 对于代码相关问题，请提供清晰的示例和解释'
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output_enabled: false
+        title: LLM 4
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 119
+      id: '1745668432393'
+      position:
+        x: 1246
+        y: 558
+      positionAbsolute:
+        x: 1246
+        y: 558
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        provider_id: audio
+        provider_name: audio
+        provider_type: builtin
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        title: Text To Speech
+        tool_configurations:
+          model: langgenius/openai/openai#tts-1-hd
+          voice#langgenius/openai/openai#gpt-4o-mini-tts: sage
+          voice#langgenius/openai/openai#tts-1: ballad
+          voice#langgenius/openai/openai#tts-1-hd: alloy
+          voice#langgenius/tongyi/tongyi#tts-1: sambert-zhiwei-v1
+          voice#openai#tts-1: null
+          voice#openai#tts-1-hd: null
+          voice#openai_api_compatible#step-tts-mini: qingniandaxuesheng
+          voice#siliconflow#fishaudio/fish-speech-1.4: null
+          voice#siliconflow#fishaudio/fish-speech-1.5: null
+        tool_label: Text To Speech
+        tool_name: tts
+        tool_parameters:
+          text:
+            type: mixed
+            value: '{{#1745668432393.text#}}'
+        type: tool
+      height: 353
+      id: '1739257224364'
+      position:
+        x: 1550
+        y: 558
+      positionAbsolute:
+        x: 1550
+        y: 558
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1739257224364.files#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 3
+        type: answer
+        variables: []
+      height: 104
+      id: '1739288133732'
+      position:
+        x: 1854
+        y: 558
+      positionAbsolute:
+        x: 1854
+        y: 558
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params: {}
+          mode: chat
+          name: gemini-2.0-flash-exp
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 230c6990-e5b0-41d7-9dc8-70782d28bd8d
+          role: system
+          text: 你需要总结一遍所发送的视频
+        retry_config:
+          max_retries: 1
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        title: '支持视频输入的LLM '
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector: []
+          enabled: true
+      height: 119
+      id: '17471217841620'
+      position:
+        x: 638
+        y: 838.5
+      positionAbsolute:
+        x: 638
+        y: 838.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#17471217841620.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 4
+        type: answer
+        variables: []
+      height: 104
+      id: '1747121828885'
+      position:
+        x: 942
+        y: 853.5
+      positionAbsolute:
+        x: 942
+        y: 853.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}
+
+            {{#sys.files#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params: {}
+          mode: chat
+          name: gemini-2.0-flash-exp
+          provider: langgenius/gemini/google
+        prompt_template:
+        - edition_type: basic
+          id: 6de35274-53f5-4e34-89c5-a9c30ffb5f64
+          role: system
+          text: '你是一个友好有用的助理，你的名字叫whyis实在。你会用简洁、专业的方式回答问题。
+
+            -请你按照用户的需求处理以下文件。'
+        selected: false
+        structured_output:
+          schema:
+            additionalProperties: false
+            properties:
+              document:
+                additionalProperties: false
+                description: 返回的文档
+                properties: {}
+                required: []
+                type: object
+            required: []
+            type: object
+        structured_output_enabled: true
+        title: 文档处理的LLM
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: low
+            variable_selector:
+            - sys
+            - files
+          enabled: false
+      height: 89
+      id: '17475838889610'
+      position:
+        x: 638
+        y: 1006.5
+      positionAbsolute:
+        x: 638
+        y: 1006.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#17475838889610.text#}}
+
+          {{#17475838889610.structured_output#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 3 (1)
+        type: answer
+        variables: []
+      height: 122
+      id: '17475839837860'
+      position:
+        x: 942
+        y: 997.5
+      positionAbsolute:
+        x: 942
+        y: 997.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7
