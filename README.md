@@ -2,6 +2,7 @@
 # 目前支持视频总结
 
 可以直接下载下来放到plugins中
+请你再dify中导入whyisBOT.yml并且再toml中更改dify的相关api填写，使用dify可以更改你需要的模型
 
 打开config.toml写入你的dify上的api
 
