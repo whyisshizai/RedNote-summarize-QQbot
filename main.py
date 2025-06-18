@@ -1,11 +1,16 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.api.message_components import Node, Plain, Image
 import aiohttp
 import asyncio
 import re
 import os
-import tomllib
+import ssl
+import yt_dlp
+import certifi
+import pdfplumber
+import tomli
 import time
 from typing import Dict, Optional, TYPE_CHECKING
 import json
@@ -14,9 +19,6 @@ import xml.etree.ElementTree as ET
 
 @register("summary", "whyis", "一个简单的读取网页内容总结", "1.0.0")
 class MyPlugin(Star):
-    description = "自动总结文本内容和卡片消息"
-    author = "whyis_shizai"
-    version = "1.0.0"
     URL_PATTERN = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[-\w./?=&]*'
 
     def __init__(self, context: Context):
@@ -24,7 +26,7 @@ class MyPlugin(Star):
         self.name = "Summary"
         config_path = os.path.join(os.path.dirname(__file__), "config.toml")
         with open(config_path, "rb") as f:
-            config = tomllib.load(f)
+            config = tomli.load(f)
 
         self.config = config.get("Summary", {})
         dify_config = self.config.get("Dify", {})
@@ -34,7 +36,7 @@ class MyPlugin(Star):
         self.http_proxy = dify_config.get("http-proxy", "")
 
         settings = self.config.get("Settings", {})
-        self.max_text_length = settings.get("max_text_length", 8000)
+        self.max_text_length = settings.get("max_text_length", 10000)
         self.black_list = settings.get("black_list", [])
         self.white_list = settings.get("white_list", [])
 
@@ -76,6 +78,86 @@ class MyPlugin(Star):
             if current_time - self.recent_cards[chat_id]["timestamp"] > self.expiration_time:
                 del self.recent_cards[chat_id]
 
+    async def get_arxiv_paper_text(self, arxiv_url, http_session=None):
+        # 步骤 1：从 URL 中提取论文 ID
+        paper_id = arxiv_url.split('/')[-1]
+        pdf_url = f"https://arxiv.org/pdf/{paper_id}.pdf"
+        logger.info(f"下载pdf文件: {pdf_url}")
+        if http_session is None:
+            http_session = aiohttp.ClientSession()
+        try:
+            timeout = aiohttp.ClientTimeout(total=60)
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            async with http_session.get(pdf_url, timeout=timeout, ssl=ssl_context) as response:
+                if response.status == 200:
+                    # 获取二进制内容
+                    pdf_content = await response.read()
+                    logger.info(f"成功下载到pdf: {pdf_url}, size: {len(pdf_content)} bytes")
+                else:
+                    logger.error(f"无法下载pdf, status code: {response.status}")
+                    return None
+            await http_session.close()
+        except Exception as e:
+            logger.error(f"下载pdf时错误: {e}")
+            return None
+        finally:
+            if http_session is None:
+                await http_session.close()
+
+        temp_pdf_path = f"{paper_id}.pdf"
+        try:
+            with open(temp_pdf_path, 'wb') as f:
+                f.write(pdf_content)
+        except Exception as e:
+            logger.error(f"Error saving PDF to file: {e}")
+            return None
+        text_content = ""
+        try:
+            with pdfplumber.open(temp_pdf_path) as pdf:
+                for page in pdf.pages:
+                    text_content += page.extract_text() + "\n\n"
+            logger.info(f"pdf文章处理完毕")
+        except Exception as e:
+            logger.error(f"pdf文章处理失败：{e}")
+            text_content = "Could not extract text from PDF."
+
+        if os.path.exists(temp_pdf_path):
+            try:
+                os.remove(temp_pdf_path)
+            except Exception as e:
+                logger.warning(f"删除临时文件错误: {e}")
+        return text_content
+
+    async def get_videos(self, video_url: str) -> Optional[str]:
+        # 配置yt-dlp选项
+        output_template = os.path.join('%(id)s.%(ext)s')
+        ydl_opts = {
+            'outtmpl': output_template,# 输出文件路径
+            'format': 'bestvideo[height<=720]',
+            'merge_output_format': 'mp4',  #合并为mp4格式
+            'quiet': True,  #减少控制台输出
+            'no_warnings': True,  # 忽略警告
+            'ignoreerrors': False,
+        }
+
+        # 保存视频路径
+        saved_path = None
+        output_dir= None
+        try:
+            # 使用yt-dlp下载视频
+            logger.info(f"开始下载视频: {video_url}")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(video_url, download=True)
+                video_id = info_dict.get('id', 'unknown')
+                video_ext = info_dict.get('ext', 'mp4')
+                saved_path = os.path.join(output_dir, f"{video_id}.{video_ext}")
+        except Exception as e:
+            logger.error(f"下载视频时出错: {e}")
+            saved_path = None
+        return saved_path
+
+    async def get_github_code_text(self, github_url, http_session=None):
+        pass
     async def _fetch_url_content(self, url: str) -> Optional[str]:
         try:
             headers = {
@@ -199,18 +281,81 @@ class MyPlugin(Star):
         except Exception as e:
             logger.error(f"备用方法获取URL内容失败: {e}")
             return None
-
-    async def _send_to_dify(self, content: str, is_xiaohongshu: bool = False) -> Optional[str]:
+    async def _upload_file_to_dify(self, file_path: str) -> Optional[str]:
+        try:
+            url = f"{self.dify_base_url}/files/upload"
+            headers = {
+                "Authorization": f"Bearer {self.dify_api_key}"
+            }
+            data = aiohttp.FormData()
+            with open(file_path, "rb") as f:
+                file_content = f.read()  # 读取文件内容到内存
+            data.add_field("file", file_content, filename="video.mp4", content_type="video/mp4")
+            data.add_field("user", "summary")
+            async with self.http_session.post(
+                url=url,
+                headers=headers,
+                data=data,
+                proxy=self.http_proxy if self.http_proxy else None
+            ) as response:
+                if response.status == 200 or 201:
+                    result = await response.json()
+                    file_id = result.get("id")  # 假设返回的响应中包含文件 ID
+                    logger.info(f"文件上传成功，文件ID: {file_id}")
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except Exception as e:
+                            logger.warning(f"删除临时文件错误: {e}")
+                    return file_id
+                else:
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except Exception as e:
+                            logger.warning(f"删除临时文件错误: {e}")
+                    error_text = await response.text()
+                    logger.error(f"文件上传失败: {response.status} - {error_text}")
+                    return None
+        except Exception as e:
+            logger.error(f"文件上传时出错: {e}")
+            return None
+    async def _send_to_dify(self, content: str, is_xiaohongshu: bool = False,is_video = False) -> Optional[str]:
         if not self.dify_enable:
             return None
+        headers = {
+            "Authorization": f"Bearer {self.dify_api_key}",
+            "Content-Type": "application/json"
+        }
+        url = f"{self.dify_base_url}/chat-messages"
         try:
-            content = content[:self.max_text_length]
-
             # 检查是否为GitHub个人主页
             is_github_profile = "github.com" in content and (
                         "overview" in content.lower() or "repositories" in content.lower())
-
-            if is_xiaohongshu:
+            if is_video:
+                video_id = await self._upload_file_to_dify(content)
+                prompt = f"""请对以下视频进行详细全面的描述或者总结，提供丰富的信息：
+                1. 📝 视频描述的内容，出现或者发生的事
+                2. 🔑 详细的核心要点（5-7点，每点包含足够细节）
+                3. 💡 如果有论述则阐述作者的主要观点、方法或建议（可选）
+                4. 💰 实用价值和可行的行动建议（可选）
+                5. 🏷️ 相关标签（3-5个）
+                """
+                payload = {
+                         "inputs": {},
+                    "files": [
+                        {
+                            "type": "video",
+                            "transfer_method": "local_file",
+                            "upload_file_id": video_id
+                        }
+                    ],
+                    "query": prompt,
+                    "response_mode": "blocking",
+                    "conversation_id": None,
+                    "user": "summary"
+                }
+            elif is_xiaohongshu:
                 prompt = f"""请对以下小红书笔记进行详细全面的总结，提供丰富的信息：
     1. 📝 全面概括笔记的核心内容和主旨（2-3句话）
     2. 🔑 详细的核心要点（5-7点，每点包含足够细节）
@@ -223,6 +368,31 @@ class MyPlugin(Star):
     原文内容：
     {content}
     """
+                payload = {
+                    "inputs": {},
+                    "query": prompt,
+                    "response_mode": "blocking",
+                    "conversation_id": None,
+                    "user": "summary"
+                }
+            elif 'arxiv' in content:
+                prompt = f"""请对以下arxiv论文进行非常详细、全面的总结，确保涵盖所有重要信息：
+                   1. 📝 论文的主要观点
+                   2. 🔑 详细的关键要点核心内容
+                   3. 💡 实验方法细节总结，实验数据处理
+                   4. 📋 实验结果总结
+                   5. 🎯 相比与传统的创新点
+                   6. 🏷️ 相关领域标签（4-6个）
+                   原文内容：
+                   {content}
+                   """
+                payload = {
+                    "inputs": {},
+                    "query": prompt,
+                    "response_mode": "blocking",
+                    "conversation_id": None,
+                    "user": "summary"
+                }
             elif is_github_profile:
                 prompt = f"""请对以下GitHub个人主页内容进行全面而详细的总结：
     1. 📝 开发者身份和专业领域的完整概述（3-4句话）
@@ -238,6 +408,13 @@ class MyPlugin(Star):
     原文内容：
     {content}
     """
+                payload = {
+                    "inputs": {},
+                    "query": prompt,
+                    "response_mode": "blocking",
+                    "conversation_id": None,
+                    "user": "summary"
+                }
             else:
                 prompt = f"""请对以下内容进行非常详细、全面的总结，确保涵盖所有重要信息：
     1. 📝 内容的完整主旨和核心内容（3-5句话）
@@ -253,18 +430,14 @@ class MyPlugin(Star):
     原文内容：
     {content}
     """
-            headers = {
-                "Authorization": f"Bearer {self.dify_api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "inputs": {},
-                "query": prompt,
-                "response_mode": "blocking",
-                "conversation_id": None,
-                "user": "auto_summary"
-            }
-            url = f"{self.dify_base_url}/chat-messages"
+                payload = {
+                    "inputs": {},
+                    "query": prompt,
+                    "response_mode": "blocking",
+                    "conversation_id": None,
+                    "user": "summary"
+                }
+
             async with self.http_session.post(
                     url=url,
                     headers=headers,
@@ -278,6 +451,8 @@ class MyPlugin(Star):
                     error_text = await response.text()
                     logger.error(f"调用Dify API失败: {response.status} - {error_text}")
                     return None
+
+
         except Exception as e:
             logger.error(f"调用Dify API时出错: {e}")
             return None
@@ -364,9 +539,25 @@ class MyPlugin(Star):
 
     async def _process_url(self, url: str) -> Optional[str]:
         try:
-            url_content = await self._fetch_url_content(url)
+            if url.endswith(".mp4"):
+                return await self._send_to_dify(url,is_video=True)
+            videos = ["bilibili", "youtube"]
+            url_content = ""
+            for video in videos:
+                if video in url:
+                    url_content = await self.get_videos(url) #返回缓存的视频路径
+                    return await self._send_to_dify(url_content)
+            if 'arxiv' in url:
+                url_content += "\narxiv论文具体内容如下:\n"
+                url_content += await self.get_arxiv_paper_text(url)
+            elif 'github' in url:
+                url_content += "\ngithub项目代码内容如下:\n"
+                url_content += await self.get_github_code_text(url)
+            else:
+                url_content += await self._fetch_url_content(url)
             if not url_content:
                 return None
+            url_content = html.unescape(url_content)
             return await self._send_to_dify(url_content)
         except Exception as e:
             logger.error(f"处理URL时出错: {e}")
@@ -375,7 +566,6 @@ class MyPlugin(Star):
     async def _handle_card_message(self,event: AstrMessageEvent, info: Dict) -> bool:
         chat_id = event.get_sender_name()
         try:
-
             # 获取URL内容
             url = info['url']
             logger.info(f"开始获取卡片URL内容: {url}")
@@ -414,21 +604,6 @@ class MyPlugin(Star):
             logger.error(f"处理卡片消息时出错: {e}")
             logger.exception(e)  # 记录完整堆栈信息
             return False
-
-    def on_other_message(priority=50):
-        """其他消息装饰器"""
-
-        def decorator(func):
-            if callable(priority):
-                f = priority
-                setattr(f, '_event_type', 'other_message')
-                setattr(f, '_priority', 50)
-                return f
-            setattr(func, '_event_type', 'other_message')
-            setattr(func, '_priority', min(max(priority, 0), 99))
-            return func
-
-        return decorator if not callable(priority) else decorator(priority)
 
     async def handle_article_message(self, event,message: Dict) -> bool:
         """处理文章类型消息（微信公众号文章等）"""
@@ -502,28 +677,74 @@ class MyPlugin(Star):
     async def summarize (self, event: AstrMessageEvent):
         """这是一个 summarize指令"""
         logger.info("使用总结")
-        content = event.get_messages()[0]
-        text = content.text[10:]
-        chat_id = event.get_sender_name()
+        message_chain = event.get_messages()
+        summarize = 1
+        for msg in message_chain:
+            if msg.type == 'Reply':
+                yield event.plain_result("视频总结调试中，请勿占用回复")
+                # 处理回复消息
+                from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+                assert isinstance(event, AiocqhttpMessageEvent)
+                client = event.bot
+                payload = {
+                    "message_id": msg.id
+                }
+                response = await client.api.call_action('get_msg', **payload)  # 调用 协议端  API
+                reply_msg = response['message']
 
-        urls = re.findall(self.URL_PATTERN, text)
-        if urls:
-            url = urls[0]
-            yield event.plain_result(f"找到URL，正在为您生成详细内容总结")
-            try:
-                summary = await self._process_url(url)
-                if summary:
-                    yield event.plain_result(f"🎯 详细内容总结如下：\n\n{summary}")
-                    # 总结后删除该URL
-                    del self.recent_urls[chat_id]
-                else:
-                    yield event.plain_result("❌ 抱歉，生成总结失败")
-            except Exception as e:
-                logger.error(f"处理URL时出错: {e}")
-                event.plain_result("❌ 抱歉，处理过程中出现错误")
+                for msg in reply_msg:
+                    if msg['type'] == 'video':
+                        summarize = 0
+                        from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+                        assert isinstance(event, AiocqhttpMessageEvent)
+                        client = event.bot
+                        payloads2 = {
+                            "file_id": msg['data']['file']
+                        }
+                        response = await client.api.call_action('get_file', **payloads2)
+                        localdiskpath = response['file']
+                        summary = await self._process_url(localdiskpath)
+                        if summary:
+                            node = Node(
+                                uin="3967575984",
+                                name="whyis实在",
+                                content=[
+                                    Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                                    Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                                ]
+                            )
+                            yield event.chain_result([node])
+                        yield event.plain_result("您指定的视频已经收到了喵~")
+        if summarize:
+            content = message_chain[0]
+            text = content.text[10:]
+            chat_id = event.get_sender_name()
 
-        else:
-            yield event.plain_result(f"没有找到URL")
+            urls = re.findall(self.URL_PATTERN, text)
+            if urls:
+                url = urls[0]
+                yield event.plain_result(f"找到URL，正在为您生成详细内容总结")
+                try:
+                    summary = await self._process_url(url)
+                    if summary:
+                        node = Node(
+                            uin="3967575984",
+                            name="whyis实在",
+                            content=[
+                                Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                                Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                            ]
+                        )
+                        yield event.chain_result([node])
+                        # 总结后删除该URL
+                        del self.recent_urls[chat_id]
+                    else:
+                        yield event.plain_result("❌ 抱歉，生成总结失败")
+                except Exception as e:
+                    logger.error(f"处理URL时出错: {e}")
+                    event.plain_result("❌ 抱歉，处理过程中出现错误")
+            else:
+                yield event.plain_result(f"没有找到URL")
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
