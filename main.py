@@ -730,7 +730,7 @@ class MyPlugin(Star):
                                 name="whyis实在",
                                 content=[
                                     Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
-                                    Image.fromFileSystem(".mizunashi.jpg")
+                                    Image.fromFileSystem("./data/plugins/rednote_summarize_qqbot/mizunashi.jpg")
                                 ]
                             )
                             yield event.chain_result([node])
