@@ -1,3 +1,5 @@
+import logging
+
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
@@ -8,6 +10,7 @@ import re
 import os
 import ssl
 import yt_dlp
+import json
 import certifi
 import pdfplumber
 import tomli
@@ -17,7 +20,7 @@ import json
 import html
 import xml.etree.ElementTree as ET
 
-@register("summary", "whyis", "一个简单的读取网页内容总结", "1.0.0")
+@register("summary", "whyis", "一个简单的读取网页内容总结", "1.0.4")
 class MyPlugin(Star):
     URL_PATTERN = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[-\w./?=&]*'
 
@@ -55,7 +58,7 @@ class MyPlugin(Star):
     async def close(self):
         if self.http_session:
             await self.http_session.close()
-            logger.info("HTTP会话已关闭")
+            print("HTTP会话已关闭")
 
     def _check_url(self, url: str) -> bool:
         stripped_url = url.strip()
@@ -66,6 +69,17 @@ class MyPlugin(Star):
         if any(stripped_url.startswith(black_url) for black_url in self.black_list):
             return False
         return True
+
+    def _is_url_allowed(self, url:str ) -> bool:
+        for b in self.black_list:
+            if url.startswith(b):
+                return False
+        if self.white_list:
+            for w in self.white_list:
+                if url.startswith(w):
+                    return True
+            return False  # 不在白名单内也禁止
+        return True  # 没设置白名单，则允许
 
     def _clean_expired_items(self):
         current_time = time.time()
@@ -82,7 +96,7 @@ class MyPlugin(Star):
         # 步骤 1：从 URL 中提取论文 ID
         paper_id = arxiv_url.split('/')[-1]
         pdf_url = f"https://arxiv.org/pdf/{paper_id}.pdf"
-        logger.info(f"下载pdf文件: {pdf_url}")
+        print(f"下载pdf文件: {pdf_url}")
         if http_session is None:
             http_session = aiohttp.ClientSession()
         try:
@@ -92,13 +106,13 @@ class MyPlugin(Star):
                 if response.status == 200:
                     # 获取二进制内容
                     pdf_content = await response.read()
-                    logger.info(f"成功下载到pdf: {pdf_url}, size: {len(pdf_content)} bytes")
+                    print(f"成功下载到pdf: {pdf_url}, size: {len(pdf_content)} bytes")
                 else:
-                    logger.error(f"无法下载pdf, status code: {response.status}")
+                    print(f"无法下载pdf, status code: {response.status}")
                     return None
             await http_session.close()
         except Exception as e:
-            logger.error(f"下载pdf时错误: {e}")
+            print(f"下载pdf时错误: {e}")
             return None
         finally:
             if http_session is None:
@@ -109,14 +123,14 @@ class MyPlugin(Star):
             with open(temp_pdf_path, 'wb') as f:
                 f.write(pdf_content)
         except Exception as e:
-            logger.error(f"Error saving PDF to file: {e}")
+            print(f"Error PDF保存错误: {e}")
             return None
         text_content = ""
         try:
             with pdfplumber.open(temp_pdf_path) as pdf:
                 for page in pdf.pages:
                     text_content += page.extract_text() + "\n\n"
-            logger.info(f"pdf文章处理完毕")
+            print(f"pdf文章处理完毕")
         except Exception as e:
             logger.error(f"pdf文章处理失败：{e}")
             text_content = "Could not extract text from PDF."
@@ -145,7 +159,7 @@ class MyPlugin(Star):
         output_dir= None
         try:
             # 使用yt-dlp下载视频
-            logger.info(f"开始下载视频: {video_url}")
+            print(f"开始下载视频: {video_url}")
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(video_url, download=True)
                 video_id = info_dict.get('id', 'unknown')
@@ -179,13 +193,13 @@ class MyPlugin(Star):
 
                 final_url = await asyncio.create_task(check_redirect())
                 if final_url != url:
-                    logger.info(f"检测到重定向: {url} -> {final_url}")
+                    print(f"检测到重定向: {url} -> {final_url}")
             except Exception as e:
                 logger.warning(f"检查重定向失败: {e}, 使用原始URL")
                 final_url = url
 
             # 使用 Jina AI 获取内容（使用最终URL）
-            logger.info(f"使用 Jina AI 获取内容: {final_url}")
+            print(f"使用 Jina AI 获取内容: {final_url}")
             try:
                 jina_url = f"https://r.jina.ai/{final_url}"
 
@@ -200,7 +214,7 @@ class MyPlugin(Star):
 
                 content = await asyncio.create_task(get_jina_content())
                 if content:
-                    logger.info(f"从 Jina AI 获取内容成功: {jina_url}, 内容长度: {len(content)}")
+                    print(f"从 Jina AI 获取内容成功: {jina_url}, 内容长度: {len(content)}")
                     return content
                 else:
                     logger.error(f"从 Jina AI 获取内容失败，URL: {jina_url}")
@@ -208,7 +222,7 @@ class MyPlugin(Star):
                 logger.error(f"使用Jina AI获取内容失败: {e}")
 
             # 如果 Jina AI 失败，尝试直接获取
-            logger.info(f"Jina AI 失败，尝试直接获取: {final_url}")
+            print(f"Jina AI 失败，尝试直接获取: {final_url}")
             try:
                 async def get_direct_content():
                     # 在任务中设置超时
@@ -335,6 +349,7 @@ class MyPlugin(Star):
             if is_video:
                 video_id = await self._upload_file_to_dify(content)
                 prompt = f"""请对以下视频进行详细全面的描述或者总结，提供丰富的信息：
+                视频，链接的标题
                 1. 📝 视频描述的内容，出现或者发生的事
                 2. 🔑 详细的核心要点（5-7点，每点包含足够细节）
                 3. 💡 如果有论述则阐述作者的主要观点、方法或建议（可选）
@@ -357,6 +372,7 @@ class MyPlugin(Star):
                 }
             elif is_xiaohongshu:
                 prompt = f"""请对以下小红书笔记进行详细全面的总结，提供丰富的信息：
+    文章，链接的标题
     1. 📝 全面概括笔记的核心内容和主旨（2-3句话）
     2. 🔑 详细的核心要点（5-7点，每点包含足够细节）
     3. 💡 作者的主要观点、方法或建议（至少3点）
@@ -377,6 +393,7 @@ class MyPlugin(Star):
                 }
             elif 'arxiv' in content:
                 prompt = f"""请对以下arxiv论文进行非常详细、全面的总结，确保涵盖所有重要信息：
+                   论文的标题
                    1. 📝 论文的主要观点
                    2. 🔑 详细的关键要点核心内容
                    3. 💡 实验方法细节总结，实验数据处理
@@ -395,6 +412,7 @@ class MyPlugin(Star):
                 }
             elif is_github_profile:
                 prompt = f"""请对以下GitHub个人主页内容进行全面而详细的总结：
+    项目，论文，链接的标题
     1. 📝 开发者身份和专业领域的完整概述（3-4句话）
     2. 🔑 主要项目和贡献（列出所有可见的重要项目及其功能描述）
     3. 💻 技术栈和专业技能（尽可能详细列出所有提到的技术）
@@ -417,6 +435,7 @@ class MyPlugin(Star):
                 }
             else:
                 prompt = f"""请对以下内容进行非常详细、全面的总结，确保涵盖所有重要信息：
+    文章或者链接的标题
     1. 📝 内容的完整主旨和核心内容（3-5句话）
     2. 🔑 详细的关键要点（5-8点，每点包含充分细节，不遗漏重要信息）
     3. 💡 主要观点、方法或价值（3-5点）
@@ -673,6 +692,7 @@ class MyPlugin(Star):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
 
 
+
     @filter.command("summarize")
     async def summarize (self, event: AstrMessageEvent):
         """这是一个 summarize指令"""
@@ -681,7 +701,7 @@ class MyPlugin(Star):
         summarize = 1
         for msg in message_chain:
             if msg.type == 'Reply':
-                yield event.plain_result("视频总结调试中，请勿占用回复")
+                yield event.plain_result("视频总结调试中，请勿回复")
                 # 处理回复消息
                 from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
                 assert isinstance(event, AiocqhttpMessageEvent)
@@ -723,7 +743,7 @@ class MyPlugin(Star):
             urls = re.findall(self.URL_PATTERN, text)
             if urls:
                 url = urls[0]
-                yield event.plain_result(f"找到URL，正在为您生成详细内容总结")
+                # yield event.plain_result(f"找到URL，正在为您生成详细内容总结")
                 try:
                     summary = await self._process_url(url)
                     if summary:
@@ -745,6 +765,53 @@ class MyPlugin(Star):
                     event.plain_result("❌ 抱歉，处理过程中出现错误")
             else:
                 yield event.plain_result(f"没有找到URL")
+
+
+    @filter.event_message_type(filter.EventMessageType.ALL, priority=2)
+    async def handle_url_message(self, event: AstrMessageEvent):
+
+        message_chain = event.get_messages()
+        if not message_chain:  # 忽略空消息
+            return
+        content = message_chain[0]
+        try:
+            if content.type == 'Json':
+                Jtext = json.loads(content.data)
+                text = Jtext["meta"]["news"]["jumpUrl"]
+            else:
+                text = content.text
+        except Exception as e:
+            logger.warning(e)
+            return
+        chat_id = event.get_sender_name()
+        logger.info(text)
+        urls = re.findall(self.URL_PATTERN, text)
+        if urls:
+            url = urls[0]
+            if not self._is_url_allowed(url):
+                return
+            # yield event.plain_result(f"找到URL，正在为您生成详细内容总结")
+            try:
+                summary = await self._process_url(url)
+                if summary:
+                    node = Node(
+                        uin="3967575984",
+                        name="whyis实在",
+                        content=[
+                            Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                            Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                        ]
+                    )
+                    yield event.chain_result([node])
+                    # 总结后删除该URL
+                    del self.recent_urls[chat_id]
+                else:
+                    yield event.plain_result("❌ 抱歉，生成总结失败")
+            except Exception as e:
+                logger.error(f"处理URL时出错: {e}")
+                event.plain_result("❌ 抱歉，处理过程中出现错误")
+        else:
+            return
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
