@@ -725,15 +725,11 @@ class MyPlugin(Star):
                         localdiskpath = response['file']
                         summary = await self._process_url(localdiskpath)
                         if summary:
-                            node = Node(
-                                uin="3967575984",
-                                name="whyis实在",
-                                content=[
-                                    Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
-                                    Image.fromFileSystem("./data/plugins/rednote_summarize_qqbot/mizunashi.jpg")
-                                ]
-                            )
-                            yield event.chain_result([node])
+                            content=[
+                                Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                                Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                            ]
+                            yield event.chain_result(content)
                         yield event.plain_result("您指定的视频已经收到了喵~")
         if summarize:
             content = message_chain[0]
@@ -747,16 +743,11 @@ class MyPlugin(Star):
                 try:
                     summary = await self._process_url(url)
                     if summary:
-                        node = Node(
-                            uin="3967575984",
-                            name="whyis实在",
-                            content=[
-                                Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
-                                Image.fromFileSystem("./data/plugins/rednote_summarize_qqbot/mizunashi.jpg")
-                            ]
-                        )
-                        yield event.chain_result([node])
-                        # 总结后删除该URL
+                        content=[
+                            Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                            Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                        ]
+                        yield event.chain_result(content)
                         del self.recent_urls[chat_id]
                     else:
                         yield event.plain_result("❌ 抱歉，生成总结失败")
@@ -794,14 +785,10 @@ class MyPlugin(Star):
             try:
                 summary = await self._process_url(url)
                 if summary:
-                    node = Node(
-                        uin="3967575984",
-                        name="whyis实在",
-                        content=[
-                            Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
-                            Image.fromFileSystem("./data/plugins/rednote_summarize_qqbot/mizunashi.jpg")
-                        ]
-                    )
+                    content=[
+                        Plain(f"🎯 详细内容总结如下：\n\n{summary}"),
+                        Image.fromFileSystem("./data/plugins/summary-master/mizunashi.jpg")
+                    ]
                     yield event.chain_result([node])
                     # 总结后删除该URL
                     del self.recent_urls[chat_id]
