@@ -1,5 +1,5 @@
-name: summray # 这是你的插件的唯一识别名。
-desc: 这是 AstrBot 的网页链接总结，支持关键词回复。 # 插件简短描述
+name: astrbot_plugin_summarize_links # 这是你的插件的唯一识别名。
+desc: 使用jina爬取QQ群内用户发送的链接，包括X，小红书，知乎，bilibili，Arvix等社交，科研网站，插件无法直接翻墙，可能需要设置梯子和代理。 # 插件简短描述
 version: v1.0 # 插件版本号。格式：v1.1.1 或者 v1.1
 author: whyis_shizai # 作者
-repo: https://github.com/whyisshizai/summary # 插件的仓库地址
+repo: https://github.com/whyisshizai/RedNote-summarize-QQbot # 插件的仓库地址
